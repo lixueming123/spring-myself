@@ -1,11 +1,13 @@
 package org.spring.context;
 
-import org.spring.AutoWired;
+import org.spring.annotation.AutoWired;
 import org.spring.config.BeanDefinition;
-import org.spring.Const;
+import org.spring.config.Const;
 import org.spring.annotation.Component;
 import org.spring.annotation.ComponentScan;
 import org.spring.annotation.Scope;
+import org.spring.factory.BeanNameAware;
+import org.spring.factory.InitializingBean;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -32,32 +34,51 @@ public class ApplicationContext {
         scan(configClass);
 
         // 创建所有单例bean
+        createSingletonBeans();
+    }
+
+    private void createSingletonBeans() {
         for (String beanName : beanDefinitionMap.keySet()) {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             if (beanDefinition.getScope().equals(Const.SINGLETON)) {
                 Object bean = singletonObjects.get(beanName);
                 if (bean == null) {
-                    bean = createBean(beanDefinition);
+                    bean = createBean(beanName, beanDefinition);
                     singletonObjects.put(beanName, bean);
                 }
             }
         }
     }
 
-    private Object createBean(BeanDefinition beanDefinition) {
-
+    public Object createBean(String beanName, BeanDefinition beanDefinition) {
         Class<?> beanClass = beanDefinition.getBeanClass();
         Object bean = null;
         try {
             bean = beanClass.getDeclaredConstructor().newInstance();
-            populateBean(bean, beanDefinition);
+            // 依赖注入
+            populateBean(beanName, bean, beanDefinition);
+
+            // Aware回调
+            if (bean instanceof BeanNameAware) {
+                ((BeanNameAware) bean).setBeanName(beanName);
+            }
+
+            // 初始化
+            if (bean instanceof InitializingBean) {
+                try {
+                    ((InitializingBean) bean).afterPropertiesSet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
         return bean;
     }
 
-    private void populateBean(Object bean, BeanDefinition beanDefinition) {
+    private void populateBean(String beanName, Object bean, BeanDefinition beanDefinition) {
         Field[] fields = beanDefinition.getBeanClass().getDeclaredFields();
         for (Field field : fields) {
             if (field.isAnnotationPresent(AutoWired.class)) {
@@ -65,7 +86,7 @@ public class ApplicationContext {
                 try {
                     Object beanFiled;
                     if ((beanFiled = singletonObjects.get(field.getName())) == null) {
-                         beanFiled = createBean(beanDefinitionMap.get(field.getName()));
+                         beanFiled = createBean(beanName, beanDefinitionMap.get(field.getName()));
                     }
                     field.set(bean, beanFiled);
                 } catch (IllegalAccessException e) {
@@ -148,7 +169,7 @@ public class ApplicationContext {
         if (scope.equals(Const.SINGLETON)) {
             return singletonObjects.get(beanName);
         }
-        return createBean(beanDefinition);
+        return createBean(beanName, beanDefinition);
     }
 
 }

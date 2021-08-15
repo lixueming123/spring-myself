@@ -1,4 +1,4 @@
-package org.spring;
+package org.spring.config;
 
 public class Const {
     public static final String SINGLETON = "singleton";
