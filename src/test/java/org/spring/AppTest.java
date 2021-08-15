@@ -2,6 +2,7 @@ package org.spring;
 
 
 import com.lxm.config.AppConfig;
+import com.lxm.service.IUserService;
 import com.lxm.service.UserService;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,7 +19,7 @@ public class AppTest {
 
     @Test
     public void test() {
-        UserService userService = applicationContext.getBean("userService", UserService.class);
+        IUserService userService = applicationContext.getBean("userService", UserService.class);
         userService.test();
     }
 

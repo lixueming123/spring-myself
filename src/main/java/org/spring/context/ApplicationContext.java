@@ -7,6 +7,7 @@ import org.spring.annotation.Component;
 import org.spring.annotation.ComponentScan;
 import org.spring.annotation.Scope;
 import org.spring.factory.BeanNameAware;
+import org.spring.factory.BeanPostProcessor;
 import org.spring.factory.InitializingBean;
 
 import java.io.File;
@@ -26,6 +27,7 @@ public class ApplicationContext {
 
     private final ConcurrentHashMap<String,Object> singletonObjects = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
+    private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
     public ApplicationContext(Class<?> configClass) {
         this.configClass = configClass;
@@ -50,7 +52,7 @@ public class ApplicationContext {
         }
     }
 
-    public Object createBean(String beanName, BeanDefinition beanDefinition) {
+    private Object createBean(String beanName, BeanDefinition beanDefinition) {
         Class<?> beanClass = beanDefinition.getBeanClass();
         Object bean = null;
         try {
@@ -63,6 +65,11 @@ public class ApplicationContext {
                 ((BeanNameAware) bean).setBeanName(beanName);
             }
 
+            // 初始化前
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
+                bean = beanPostProcessor.postProcessBeforeInitialization(bean, beanName);
+            }
+
             // 初始化
             if (bean instanceof InitializingBean) {
                 try {
@@ -70,6 +77,11 @@ public class ApplicationContext {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+
+            // 初始化后
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
+                bean = beanPostProcessor.postProcessAfterInitialization(bean, beanName);
             }
 
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
@@ -122,6 +134,13 @@ public class ApplicationContext {
                     }
                     beanDefinitionMap.put(beanName, beanDefinition);
 
+                    // BeanPostProcessor
+                    if (BeanPostProcessor.class.isAssignableFrom(clazz)) {
+                        BeanPostProcessor bean = (BeanPostProcessor) createBean(beanName,
+                                beanDefinition);
+                        beanPostProcessors.add(bean);
+                    }
+
                 }
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
@@ -167,7 +186,11 @@ public class ApplicationContext {
         BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
         String scope = beanDefinition.getScope();
         if (scope.equals(Const.SINGLETON)) {
-            return singletonObjects.get(beanName);
+            Object bean;
+            if ((bean = singletonObjects.get(beanName)) == null) {
+                bean = createBean(beanName, beanDefinition);
+            }
+            return bean;
         }
         return createBean(beanName, beanDefinition);
     }

@@ -6,7 +6,7 @@ import org.spring.factory.BeanNameAware;
 import org.spring.factory.InitializingBean;
 
 @Component("userService")
-public class UserService implements BeanNameAware, InitializingBean {
+public class UserService implements BeanNameAware, InitializingBean, IUserService {
 
     @AutoWired
     private OrderService orderService;
@@ -14,8 +14,8 @@ public class UserService implements BeanNameAware, InitializingBean {
     private String beanName;
 
     public void test() {
-        orderService.show();
         System.out.println(beanName);
+        orderService.show();
     }
 
     @Override
