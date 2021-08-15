@@ -25,9 +25,9 @@ public class ApplicationContext {
         this.configClass = configClass;
     }
 
-    private final ConcurrentHashMap<String,Object> singletonObjects = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
-    private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
+    private final ConcurrentHashMap<String,Object> singletonObjects = new ConcurrentHashMap<>(); // 单例池
+    private final ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(); // bean定义Map
+    private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>(); // 后置处理器
 
     public ApplicationContext(Class<?> configClass) {
         this.configClass = configClass;
@@ -99,6 +99,7 @@ public class ApplicationContext {
                     Object beanFiled;
                     if ((beanFiled = singletonObjects.get(field.getName())) == null) {
                          beanFiled = createBean(beanName, beanDefinitionMap.get(field.getName()));
+                         singletonObjects.put(field.getName(), beanFiled);
                     }
                     field.set(bean, beanFiled);
                 } catch (IllegalAccessException e) {

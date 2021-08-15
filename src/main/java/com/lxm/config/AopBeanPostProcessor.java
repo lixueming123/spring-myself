@@ -5,8 +5,8 @@ import org.spring.annotation.Component;
 import org.spring.factory.BeanPostProcessor;
 import org.spring.factory.JdkProxyFactory;
 
-@Component("myBeanPostProcessor")
-public class MyBeanPostProcessor implements BeanPostProcessor {
+@Component("aopBeanPostProcessor")
+public class AopBeanPostProcessor implements BeanPostProcessor {
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) {
         return bean;
