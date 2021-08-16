@@ -3,7 +3,7 @@ package com.lxm.service;
 import com.lxm.aop.AopGo;
 import org.spring.annotation.Component;
 
-@Component("orderService")
+@Component
 public class OrderService {
     public void show() {
         System.out.println("orderService show()");

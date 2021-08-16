@@ -1,6 +1,8 @@
 package org.spring.context;
 
 import org.spring.annotation.AutoWired;
+import org.spring.annotation.aop.Aspect;
+import org.spring.annotation.aop.PointCnt;
 import org.spring.config.BeanDefinition;
 import org.spring.config.Const;
 import org.spring.annotation.Component;
@@ -10,27 +12,27 @@ import org.spring.factory.BeanNameAware;
 import org.spring.factory.BeanPostProcessor;
 import org.spring.factory.InitializingBean;
 
+import java.awt.*;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ApplicationContext {
-    private Class<?> configClass;
 
-    public void setConfigClass(Class<?> configClass) {
-        this.configClass = configClass;
-    }
+    private final Map<String,Object> singletonObjects = new ConcurrentHashMap<>(); // 单例池
 
-    private final ConcurrentHashMap<String,Object> singletonObjects = new ConcurrentHashMap<>(); // 单例池
-    private final ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(); // bean定义Map
+    private final Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(); // bean定义Map
+
     private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>(); // 后置处理器
 
+
     public ApplicationContext(Class<?> configClass) {
-        this.configClass = configClass;
 
         // 初始化扫描，加入beanDefinitionMap中
         scan(configClass);
@@ -127,6 +129,14 @@ public class ApplicationContext {
                 if (clazz.isAnnotationPresent(Component.class)) {
                     Component component = clazz.getDeclaredAnnotation(Component.class);
                     String beanName = component.value();
+                    if (beanName.equals("")) {
+                        String packageName = clazz.getPackageName();
+                        beanName = className.replace(packageName, "");
+                        beanName = beanName.replace(".", "");
+                        char[] chars = beanName.toCharArray();
+                        chars[0] = Character.toLowerCase(chars[0]);
+                        beanName = new String(chars);
+                    }
 
                     BeanDefinition beanDefinition = new BeanDefinition(clazz, Const.SINGLETON);
                     if (clazz.isAnnotationPresent(Scope.class)) {
@@ -141,13 +151,13 @@ public class ApplicationContext {
                                 beanDefinition);
                         beanPostProcessors.add(bean);
                     }
-
                 }
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
         }
     }
+
 
     private List<String> getClassNames(File file) {
         List<String> classNames = new ArrayList<>();
